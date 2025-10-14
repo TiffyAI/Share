@@ -231,13 +231,30 @@
           await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
         }
       } else {
-        // Fallback for desktop or unsupported browsers
-        const confirmed = confirm(`Share this post to spread the word, ${userName}:\n\n${shareText}\n\nURL: ${shareUrl}\nInclude image: Copy this link - https://tiffyai.github.io/Share/TM.jpg\nClick OK to share, Cancel to skip.`);
-        if (confirmed) {
-          window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-          console.log('Share confirmed via fallback prompt');
-        } else {
-          console.log('Share canceled via fallback prompt');
+        // Fallback with platform choice
+        const platform = prompt(`Choose a platform to share, ${userName}:\n1. Telegram\n2. X\n3. Facebook\n4. Copy to Clipboard\nEnter 1-4 (or cancel to skip):`);
+        let shareLink = '';
+        switch (platform) {
+          case '1':
+            shareLink = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+            break;
+          case '2':
+            shareLink = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+            break;
+          case '3':
+            shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+            break;
+          case '4':
+            navigator.clipboard.writeText(`${shareText}\n${shareUrl}\nImage: https://tiffyai.github.io/Share/TM.jpg`);
+            alert(`Copied to clipboard, ${userName}! Paste and share where you like.`);
+            break;
+          default:
+            console.log('Share canceled via fallback prompt');
+            return;
+        }
+        if (shareLink) {
+          window.open(shareLink, '_blank');
+          console.log(`Share confirmed via ${platform === '1' ? 'Telegram' : platform === '2' ? 'X' : 'Facebook'} prompt`);
         }
       }
 
