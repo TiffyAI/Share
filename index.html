@@ -208,20 +208,31 @@
       const shareButtons = document.querySelectorAll('.share-btn');
       shareButtons.forEach(btn => btn.disabled = true);
 
-      const shareText = `${post.text} Check it out: ${post.url}`;
-      const shareTitle = 'Share from TiffyAI';
-      const shareUrl = post.url;
+      const shareText = post.text; // Use only the post text, no extra link
+      const shareTitle = 'TiffyAI - Join the Revolution';
+      const shareUrl = post.url; // Single link to post URL
 
-      // Trigger share prompt (but don't gate reward on completion)
-      if (navigator.share) {
+      // Attempt to share with image if supported
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [] })) {
         try {
-          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
-          console.log('Share completed via Web Share API');
+          const imageUrl = 'https://tiffyai.github.io/Share/TM.jpg'; // Default image
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'TiffyAI.jpg', { type: 'image/jpeg' });
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+            files: [file]
+          });
+          console.log('Share completed with image via Web Share API');
         } catch (err) {
-          console.log('Share canceled:', err);
+          console.log('Image share failed, falling back to text:', err);
+          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
         }
       } else {
-        const confirmed = confirm(`Share this post to spread the word, ${userName}:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
+        // Fallback for desktop or unsupported browsers
+        const confirmed = confirm(`Share this post to spread the word, ${userName}:\n\n${shareText}\n\nURL: ${shareUrl}\nInclude image: Copy this link - https://tiffyai.github.io/Share/TM.jpg\nClick OK to share, Cancel to skip.`);
         if (confirmed) {
           window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
           console.log('Share confirmed via fallback prompt');
