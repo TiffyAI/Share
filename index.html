@@ -75,11 +75,11 @@
   </div>
 
   <audio id="shareSound" src="https://tiffyai.github.io/Blue-Key-Claim/single-coin.wav" preload="auto"></audio>
+  <audio id="withdrawSound" src="https://tiffyai.github.io/Blue-Key-Claim/withdraw.wav" preload="auto"></audio>
 
   <script>
   (async ()=>{
     const PRICE_JSON_PATH = "https://tiffyai.github.io/TIFFY-Market-Value/price.json";
-    let web3, provider, account;
 
     const E = {
       portal: document.getElementById("mainPortal"),
@@ -89,7 +89,8 @@
       withdraw: document.getElementById("withdrawBtn"),
       feed: document.getElementById("postFeed"),
       motivation: document.getElementById("motivation"),
-      shareSound: document.getElementById("shareSound")
+      shareSound: document.getElementById("shareSound"),
+      withdrawSound: document.getElementById("withdrawSound")
     };
 
     // Load UI directly, no initial connect required
@@ -181,7 +182,6 @@
     function fallbackShare(shareText, shareUrl){
       const confirmed = confirm(`Share this to earn 1 TIFFY:\n\n${shareText}\n\nClick OK after sharing (e.g., copy to Telegram/Facebook/X).`);
       if (confirmed) {
-        // Open share links (customize for platforms)
         window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
         // Optional: Facebook, X
         // window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
@@ -202,49 +202,9 @@
       setTimeout(() => { E.motivation.textContent = "Share posts to earn TIFFY! Select one below and share."; }, 5000);
     }
 
-    // Withdraw: Trigger wallet connect then redirect
-    const wModal = new Web3Modal.default({
-      cacheProvider: false,
-      providerOptions: {
-        walletconnect: {
-          package: window.WalletConnectProvider?.default || {},
-          options: { rpc: { 56: "https://bsc-dataseed.binance.org/" } }
-        }
-      }
-    });
-
-    E.withdraw.onclick = async () => {
-      try {
-        provider = await wModal.connect();
-        web3 = new Web3(provider);
-        const cid = await web3.eth.getChainId();
-        if(cid !== 56){
-          try {
-            await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
-          } catch(e){
-            if(provider.isBitget || provider.isBitKeep){
-              try {
-                await provider.request({
-                  method: "wallet_addEthereumChain",
-                  params: [{
-                    chainId: "0x38",
-                    chainName: "BNB Smart Chain",
-                    rpcUrls: ["https://bsc-dataseed.binance.org/"],
-                    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-                    blockExplorerUrls: ["https://bscscan.com"]
-                  }]
-                });
-              } catch{ alert("🌐 Bitget: please switch BSC manually."); return; }
-            } else { alert("❗ Please switch to BNB Smart Chain"); return; }
-          }
-        }
-        const accts = await web3.eth.getAccounts();
-        account = accts[0];
-        // Redirect after connect
-        window.location.href = 'https://tiffyai.github.io/Offline-/';
-      } catch (err) {
-        alert("❌ Wallet connection failed: " + (err && err.message ? err.message : err));
-      }
+    E.withdraw.onclick = () => {
+      E.withdrawSound.play();
+      window.location.href = 'https://tiffyai.github.io/Offline-/';
     };
   })();
   </script>
