@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TiffyAI Share & Earn</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;font-family:'Orbitron',Arial,sans-serif;overflow:auto;background:#000;color:#fff}
+    #mainPortal{width:100%;min-height:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:url('https://tiffyai.github.io/Blue-Key-Claim/TiffyAI-Treasury.jpg') center/cover;padding:20px;}
+    .card{background:rgba(0,0,0,0.6);padding:20px;border:1px solid #00ffff;border-radius:12px;text-align:center;max-width:400px;box-shadow:0 0 20px #00ffff;margin:20px auto;}
+    .card img{height:32px;vertical-align:middle;margin-right:8px;}
+    .btn{margin-top:20px;padding:12px 25px;font-size:16px;border:none;border-radius:8px;cursor:pointer;}
+    .share-btn{background:#4af0f8;color:#000;box-shadow:0 0 15px #00ffff;}
+    #postFeed{margin:20px auto;text-align:left;width:90%;max-width:400px;}
+    .post-item{background:rgba(255,255,255,0.1);padding:10px;margin:10px 0;border-radius:8px;cursor:pointer;}
+    .post-item:hover{background:rgba(255,255,255,0.2);}
+    .post-preview img, .post-preview video {max-width:100%;height:auto;border-radius:8px;margin-bottom:10px;}
+    #motivation{margin-top:15px;font-size:18px;text-shadow:0 0 10px #00ffff;text-align:center;}
+    a.sourcify{display:block;color:#00ffff;text-decoration:none;margin-top:15px;font-size:14px;}
+    a.sourcify:hover{text-decoration:underline;}
+    #withdrawBtn {
+      margin-top: 10px;
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #portalBtn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 3;
+      padding: 8px 14px;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      color: #000;
+      text-decoration: none;
+      background: linear-gradient(90deg,#00ffff,#7afcff);
+      border: 1px solid rgba(0,255,255,0.6);
+      border-radius: 10px;
+      box-shadow: 0 0 14px rgba(0,255,255,0.75), inset 0 0 10px rgba(255,255,255,0.35);
+      text-shadow: 0 0 8px rgba(255,255,255,0.65);
+    }
+    #portalBtn:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 0 18px rgba(0,255,255,0.95), inset 0 0 12px rgba(255,255,255,0.45);
+    }
+  </style>
+</head>
+<body>
+  <div id="mainPortal">
+    <a id="portalBtn" href="https://tiffyai.github.io/Dream-Menu" target="_blank" rel="noopener">Portal</a>
+    <div class="card">
+      <div style="margin-top:10px">
+        <img src="https://tiffyai.github.io/Blue-Key-Claim/TiffyAI-Token.png" alt="TIFFY"/>
+        <strong id="tiffyCount">0.00 TIFFY</strong> →
+        <span id="usdValue">Value: Fetching...</span>
+      </div>
+      <div style="margin-top:10px">Live price: $<span id="livePrice">–</span></div>
+      <a href="https://repo.sourcify.dev/56/0xE488253DD6B4D31431142F1b7601C96f24Fb7dd5" target="_blank" class="sourcify">🧪 Verified on Sourcify</a>
+      <button id="withdrawBtn">Withdraw</button>
+      <div id="motivation">Share posts to earn TIFFY! Select one below and share.</div>
+    </div>
+
+    <div id="postFeed">
+      <h3 style="text-align:center;color:#00ffff;text-shadow:0 0 5px #00ffff;">Posts to Share - Earn 1 TIFFY Each!</h3>
+      <!-- Posts will be loaded here -->
+    </div>
+  </div>
+
+  <audio id="shareSound" src="https://tiffyai.github.io/Blue-Key-Claim/single-coin.wav" preload="auto"></audio>
+
+  <script>
+  (async ()=>{
+    const PRICE_JSON_PATH = "https://tiffyai.github.io/TIFFY-Market-Value/price.json";
+    let web3, provider, account;
+
+    const E = {
+      portal: document.getElementById("mainPortal"),
+      count: document.getElementById("tiffyCount"),
+      usd: document.getElementById("usdValue"),
+      live: document.getElementById("livePrice"),
+      withdraw: document.getElementById("withdrawBtn"),
+      feed: document.getElementById("postFeed"),
+      motivation: document.getElementById("motivation"),
+      shareSound: document.getElementById("shareSound")
+    };
+
+    // Load UI directly, no initial connect required
+    E.portal.style.display = "block";
+    setupUI();
+    fetchPrice();
+    setInterval(fetchPrice, 60000);
+    loadPosts();
+
+    function setupUI(){
+      const key = 'tetrusScore';
+      let cnt = parseFloat(localStorage.getItem(key) || '0').toFixed(2);
+      E.withdraw.style.display = parseFloat(cnt) > 0 ? "inline-block" : "none";
+      updateDisplay(cnt);
+    }
+
+    function updateDisplay(cnt){
+      E.count.textContent = `${cnt} TIFFY`;
+      const price = parseFloat(E.live.textContent || 0);
+      E.usd.textContent = price ? `Value: $${(parseFloat(cnt) * price).toFixed(2)} USD` : "Value: Fetching...";
+    }
+
+    async function fetchPrice(){
+      try {
+        const r = await fetch(PRICE_JSON_PATH, { cache: 'no-store' });
+        const d = await r.json();
+        E.live.textContent = parseFloat(d.tiffyToUSD).toFixed(2);
+        const cnt = parseFloat(localStorage.getItem('tetrusScore') || '0').toFixed(2);
+        updateDisplay(cnt);
+      } catch(e){
+        E.live.textContent = "-";
+        E.usd.textContent = "Value: Fetching...";
+      }
+    }
+
+    function loadPosts(){
+      // Hardcoded posts with picture/mp4, wording, and link
+      const samplePosts = [
+        {
+          id: 1,
+          media: '<img src="https://example.com/image1.jpg" alt="TiffyAI Image 1">', // Replace with real URL
+          text: "Discover the power of TiffyAI! #AIRevolution",
+          url: "https://tiffyai.com/post1"
+        },
+        {
+          id: 2,
+          media: '<video src="https://example.com/video1.mp4" controls muted loop style="max-width:100%;"></video>', // Replace with real MP4 URL
+          text: "Watch this amazing TiffyAI demo! 🚀 #TechInnovation",
+          url: "https://tiffyai.com/post2"
+        },
+        {
+          id: 3,
+          media: '<img src="https://example.com/image2.jpg" alt="TiffyAI Image 2">', // Replace with real URL
+          text: "Join the TiffyAI community today! #CryptoAI",
+          url: "https://tiffyai.com/post3"
+        }
+      ];
+
+      samplePosts.forEach(post => {
+        const item = document.createElement('div');
+        item.className = 'post-item';
+        item.innerHTML = `
+          <div class="post-preview">${post.media}</div>
+          <p>${post.text}</p>
+          <button class="btn share-btn">Share & Earn 1 TIFFY</button>
+        `;
+        item.querySelector('.share-btn').onclick = () => handleShare(post);
+        E.feed.appendChild(item);
+      });
+    }
+
+    async function handleShare(post){
+      const shareText = `${post.text} Check it out: ${post.url}`;
+      const shareTitle = 'Share from TiffyAI';
+      const shareUrl = post.url;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+          awardTiffy();
+        } catch (err) {
+          fallbackShare(shareText, shareUrl);
+        }
+      } else {
+        fallbackShare(shareText, shareUrl);
+      }
+    }
+
+    function fallbackShare(shareText, shareUrl){
+      const confirmed = confirm(`Share this to earn 1 TIFFY:\n\n${shareText}\n\nClick OK after sharing (e.g., copy to Telegram/Facebook/X).`);
+      if (confirmed) {
+        // Open share links (customize for platforms)
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
+        // Optional: Facebook, X
+        // window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+        // window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+        awardTiffy();
+      }
+    }
+
+    function awardTiffy(){
+      const key = 'tetrusScore';
+      let cnt = parseFloat(localStorage.getItem(key) || '0') + 1;
+      cnt = cnt.toFixed(2);
+      localStorage.setItem(key, cnt);
+      E.withdraw.style.display = parseFloat(cnt) > 0 ? "inline-block" : "none";
+      updateDisplay(cnt);
+      E.shareSound.play();
+      E.motivation.textContent = `Great share! You earned 1 TIFFY. Keep sharing to earn more and grow your balance! 🚀`;
+      setTimeout(() => { E.motivation.textContent = "Share posts to earn TIFFY! Select one below and share."; }, 5000);
+    }
+
+    // Withdraw: Trigger wallet connect then redirect
+    const wModal = new Web3Modal.default({
+      cacheProvider: false,
+      providerOptions: {
+        walletconnect: {
+          package: window.WalletConnectProvider?.default || {},
+          options: { rpc: { 56: "https://bsc-dataseed.binance.org/" } }
+        }
+      }
+    });
+
+    E.withdraw.onclick = async () => {
+      try {
+        provider = await wModal.connect();
+        web3 = new Web3(provider);
+        const cid = await web3.eth.getChainId();
+        if(cid !== 56){
+          try {
+            await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
+          } catch(e){
+            if(provider.isBitget || provider.isBitKeep){
+              try {
+                await provider.request({
+                  method: "wallet_addEthereumChain",
+                  params: [{
+                    chainId: "0x38",
+                    chainName: "BNB Smart Chain",
+                    rpcUrls: ["https://bsc-dataseed.binance.org/"],
+                    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+                    blockExplorerUrls: ["https://bscscan.com"]
+                  }]
+                });
+              } catch{ alert("🌐 Bitget: please switch BSC manually."); return; }
+            } else { alert("❗ Please switch to BNB Smart Chain"); return; }
+          }
+        }
+        const accts = await web3.eth.getAccounts();
+        account = accts[0];
+        // Redirect after connect
+        window.location.href = 'https://tiffyai.github.io/Offline-/';
+      } catch (err) {
+        alert("❌ Wallet connection failed: " + (err && err.message ? err.message : err));
+      }
+    };
+  })();
+  </script>
+</body>
+</html>
