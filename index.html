@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TiffyAI Share & Earn</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;font-family:'Orbitron',Arial,sans-serif;overflow:auto;background:#000;color:#fff}
+    #mainPortal{width:100%;min-height:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:url('https://tiffyai.github.io/Blue-Key-Claim/TiffyAI-Treasury.jpg') center/cover;padding:20px;}
+    .card{background:rgba(0,0,0,0.6);padding:20px;border:1px solid #00ffff;border-radius:12px;text-align:center;max-width:400px;box-shadow:0 0 20px #00ffff;margin:20px auto;}
+    .card img{height:32px;vertical-align:middle;margin-right:8px;}
+    .btn{margin-top:20px;padding:12px 25px;font-size:16px;border:none;border-radius:8px;cursor:pointer;}
+    .share-btn{background:#4af0f8;color:#000;box-shadow:0 0 15px #00ffff;}
+    .share-btn:disabled{background:#666;cursor:not-allowed;}
+    #postFeed{margin:20px auto;text-align:left;width:90%;max-width:400px;}
+    .post-item{background:rgba(255,255,255,0.1);padding:10px;margin:10px 0;border-radius:8px;cursor:pointer;}
+    .post-item:hover{background:rgba(255,255,255,0.2);}
+    .post-preview img, .post-preview video {max-width:100%;height:auto;border-radius:8px;margin-bottom:10px;}
+    #motivation{margin-top:15px;font-size:18px;text-shadow:0 0 10px #00ffff;text-align:center;}
+    a.sourcify{display:block;color:#00ffff;text-decoration:none;margin-top:15px;font-size:14px;}
+    a.sourcify:hover{text-decoration:underline;}
+    #withdrawBtn {
+      margin-top: 10px;
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #portalBtn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 3;
+      padding: 8px 14px;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      color: #000;
+      text-decoration: none;
+      background: linear-gradient(90deg,#00ffff,#7afcff);
+      border: 1px solid rgba(0,255,255,0.6);
+      border-radius: 10px;
+      box-shadow: 0 0 14px rgba(0,255,255,0.75), inset 0 0 10px rgba(255,255,255,0.35);
+      text-shadow: 0 0 8px rgba(255,255,255,0.65);
+    }
+    #portalBtn:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 0 18px rgba(0,255,255,0.95), inset 0 0 12px rgba(255,255,255,0.45);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      border: 1px solid #00ffff;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 0 20px #00ffff;
+      color: #fff;
+      font-family: 'Orbitron', Arial, sans-serif;
+    }
+    .modal-content h3 {
+      margin-bottom: 15px;
+      color: #00ffff;
+      text-shadow: 0 0 5px #00ffff;
+    }
+    .modal-content p {
+      margin-bottom: 20px;
+      word-wrap: break-word;
+    }
+    .modal-option {
+      display: inline-block;
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #4af0f8;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ffff;
+      text-transform: uppercase;
+    }
+    .modal-option:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 0 15px #00ffff;
+    }
+    .modal-close {
+      margin-top: 15px;
+      padding: 8px 15px;
+      background: #666;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="mainPortal">
+    <a id="portalBtn" href="https://tiffyai.github.io/Dream-Menu" target="_blank" rel="noopener">Portal</a>
+    <div class="card">
+      <div style="margin-top:10px">
+        <img src="https://tiffyai.github.io/Blue-Key-Claim/TiffyAI-Token.png" alt="TIFFY"/>
+        <strong id="tiffyCount">0.00 TIFFY</strong> →
+        <span id="usdValue">Value: Fetching...</span>
+      </div>
+      <div style="margin-top:10px">Live price: $<span id="livePrice">–</span></div>
+      <a href="https://repo.sourcify.dev/56/0xE488253DD6B4D31431142F1b7601C96f24Fb7dd5" target="_blank" class="sourcify">🧪 Verified on Sourcify</a>
+      <button id="withdrawBtn">Withdraw</button>
+      <div id="motivation">Welcome! Click Share 3 times to earn 1 TIFFY! Select a post below.</div>
+    </div>
+
+    <div id="postFeed">
+      <h3 style="text-align:center;color:#00ffff;text-shadow:0 0 5px #00ffff;">Posts to Share - Earn 1 TIFFY After 3 Clicks!</h3>
+      <!-- Posts will be loaded here -->
+    </div>
+  </div>
+
+  <div id="shareModal" class="modal">
+    <div class="modal-content">
+      <h3>Share with TiffyAI</h3>
+      <p id="modalText"></p>
+      <button class="modal-option" data-platform="telegram">Telegram</button>
+      <button class="modal-option" data-platform="x">X</button>
+      <button class="modal-option" data-platform="facebook">Facebook</button>
+      <button class="modal-option" data-platform="whatsapp">WhatsApp</button>
+      <button class="modal-option" data-platform="clipboard">Copy to Clipboard</button>
+      <button class="modal-close">Cancel</button>
+    </div>
+  </div>
+
+  <audio id="shareSound" src="https://tiffyai.github.io/Blue-Key-Claim/single-coin.wav" preload="auto"></audio>
+  <audio id="withdrawSound" src="https://tiffyai.github.io/Blue-Key-Claim/withdraw.wav" preload="auto"></audio>
+
+  <script>
+  (async ()=>{
+    const PRICE_JSON_PATH = "https://tiffyai.github.io/TIFFY-Market-Value/price.json";
+    const shareModal = document.getElementById('shareModal');
+    const modalText = document.getElementById('modalText');
+
+    const E = {
+      portal: document.getElementById("mainPortal"),
+      count: document.getElementById("tiffyCount"),
+      usd: document.getElementById("usdValue"),
+      live: document.getElementById("livePrice"),
+      withdraw: document.getElementById("withdrawBtn"),
+      feed: document.getElementById("postFeed"),
+      motivation: document.getElementById("motivation"),
+      shareSound: document.getElementById("shareSound"),
+      withdrawSound: document.getElementById("withdrawSound")
+    };
+
+    const motivationalMessages = [
+      "Great job! You earned 1 TIFFY. Click Share 3 more times to earn another! 🚀",
+      "Awesome! Another TIFFY earned. Keep clicking to stack those tokens! 🌟",
+      "Way to go! 1 TIFFY added. Let's make it viral with more clicks! 🔥",
+      "Fantastic! Your TIFFY count is climbing. Click Share 3 more times! 💪"
+    ];
+
+    let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
+    if (clickCount < 0) {
+      clickCount = 0;
+      localStorage.setItem('shareClickCount', '0');
+    }
+    updateMotivation();
+    setupUI();
+    fetchPrice();
+    setInterval(fetchPrice, 60000);
+    loadPosts();
+
+    function setupUI(){
+      const key = 'tetrusScore';
+      let cnt = parseFloat(localStorage.getItem(key) || '0').toFixed(2);
+      E.withdraw.style.display = parseFloat(cnt) > 0 ? "inline-block" : "none";
+      updateDisplay(cnt);
+    }
+
+    function updateDisplay(cnt){
+      E.count.textContent = `${cnt} TIFFY`;
+      const price = parseFloat(E.live.textContent || 0);
+      E.usd.textContent = price ? `Value: $${(parseFloat(cnt) * price).toFixed(2)} USD` : "Value: Fetching...";
+    }
+
+    function updateMotivation(){
+      let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
+      if (clickCount < 0) clickCount = 0;
+      if (clickCount === 0) {
+        E.motivation.textContent = "Welcome! Click Share 3 times to earn 1 TIFFY! Select a post below.";
+      } else {
+        const remaining = 3 - clickCount;
+        E.motivation.textContent = `Keep going! Click Share ${remaining > 0 ? remaining : 0} more time${remaining === 1 ? '' : 's'} to earn 1 TIFFY!`;
+      }
+    }
+
+    async function fetchPrice(){
+      try {
+        const r = await fetch(PRICE_JSON_PATH, { cache: 'no-store' });
+        const d = await r.json();
+        E.live.textContent = parseFloat(d.tiffyToUSD).toFixed(2);
+        const cnt = parseFloat(localStorage.getItem('tetrusScore') || '0').toFixed(2);
+        updateDisplay(cnt);
+      } catch(e){
+        E.live.textContent = "-";
+        E.usd.textContent = "Value: Fetching...";
+      }
+    }
+
+    function loadPosts(){
+      const samplePosts = [
+        {
+          id: 1,
+          media: '<img src="https://tiffyai.github.io/Share/TM.jpg" alt="TiffyAI Image 1" onerror="this.src=\'https://via.placeholder.com/150\';">',
+          text: "📢 Unlock the Future with TiffyAI: Stake, Play, Earn, & Govern! 🌟 TiffyAI is a self-aware contract with memory, born from the DAO to think, burn, and evolve on BNB Chain. #TiffyKeys unlock on-chain magic! 🔥 Token Power: $TIFFY – Verified, stakable, with burns. 🎮 Play-to-Earn: Tilt Game & Tetris Storm. 💎 Staking & Earn: 3x Share clicks = 1 TIFFY! 🤖 AI Ecosystem: Tiffy guides you. 🛡️ DAO-governed, secure. Join at TiffyAI Portal! #TiffyAI #PlayToEarn #BNBChain",
+          url: "https://tiffyai.github.io/Intro"
+        },
+        {
+          id: 2,
+          media: '<video src="https://tiffyai.github.io/Share/post2.mp4" controls muted loop style="max-width:100%;" onerror="this.style.display=\'none\';"></video>',
+          text: "🎮 Dive into TiffyAI Games! Tilt Game challenges you to earn TIFFY, while there's Tetris & Storm drops blockchain quests every 3 hours. No gas fees, just rewards! 💎 Stake $TIFFY on BNB Chain for passive income. Click Share 3x to earn more! #TiffyAI #PlayToEarn #BNBChain",
+          url: "https://tiffyai.github.io/Blockchain-Storm-AR-VR-/"
+        },
+        {
+          id: 3,
+          media: '<video src="https://tiffyai.github.io/Share/post33.mp4" controls muted loop style="max-width:100%;" onerror="this.style.display=\'none\';"></video>',
+          text: "🤖 Meet Tiffy, your AI guide! From whitepapers to image gen, she’s here for Storm challenges & balance checks. 🛡️ DAO governance puts you in control. Stake, earn, and grow with #TiffyAI on BNB Chain! #CryptoDAO #StakeAndEarn",
+          url: "https://tiffyai.github.io/Activating-Portal"
+        }
+      ];
+
+      samplePosts.forEach(post => {
+        const item = document.createElement('div');
+        item.className = 'post-item';
+        item.innerHTML = `
+          <div class="post-preview">${post.media}</div>
+          <p>${post.text}</p>
+          <button class="modal-option share-btn">Share & Earn 1 TIFFY</button>
+        `;
+        item.querySelector('.share-btn').onclick = () => handleShare(post);
+        E.feed.appendChild(item);
+      });
+    }
+
+    async function handleShare(post){
+      let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
+      if (clickCount < 0) clickCount = 0;
+      localStorage.setItem('shareClickCount', clickCount.toString());
+      console.log(`Share button clicked, click count: ${clickCount}`);
+
+      const shareButtons = document.querySelectorAll('.share-btn');
+      shareButtons.forEach(btn => btn.disabled = true);
+
+      const shareText = post.text;
+      const shareTitle = 'TiffyAI - Join the Revolution';
+      const shareUrl = post.url;
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [] })) {
+        try {
+          const imageUrl = 'https://tiffyai.github.io/Share/TM.jpg';
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'TiffyAI.jpg', { type: 'image/jpeg' });
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+            files: [file]
+          });
+          console.log('Share completed with image via Web Share API');
+        } catch (err) {
+          console.log('Image share failed, falling back to text:', err);
+          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+        }
+      } else {
+        // Detect installed browser and suggest Chrome Intent or redirect
+        const userAgent = navigator.userAgent.toLowerCase();
+        let intentUrl = 'https://tiffyai.github.io/Chrome-Intent'; // Your loading page
+        if (userAgent.includes('chrome')) intentUrl += '?browser=chrome';
+        else if (userAgent.includes('safari')) intentUrl += '?browser=safari';
+        else if (userAgent.includes('firefox')) intentUrl += '?browser=firefox';
+        else intentUrl += '?browser=chrome'; // Default to Chrome
+
+        modalText.innerHTML = `Share this post to spread the word:<br><br>${shareText}<br><br>URL: <a href="${shareUrl}" target="_blank">${shareUrl}</a><br>Include image: <a href="https://tiffyai.github.io/Share/TM.jpg" target="_blank">TM.jpg</a><br><br><a href="${intentUrl}" target="_blank" class="modal-option">Open in Preferred Browser</a>`;
+        shareModal.style.display = 'flex';
+        const options = shareModal.querySelectorAll('.modal-option');
+        options.forEach(option => {
+          option.onclick = (e) => {
+            const platform = e.target.getAttribute('data-platform');
+            let shareLink = '';
+            switch (platform) {
+              case 'telegram':
+                shareLink = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+                break;
+              case 'x':
+                shareLink = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+                break;
+              case 'facebook':
+                shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+                break;
+              case 'whatsapp':
+                shareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+                break;
+              case 'clipboard':
+                navigator.clipboard.writeText(`${shareText}\n${shareUrl}\nImage: https://tiffyai.github.io/Share/TM.jpg`);
+                alert(`Copied to clipboard! Paste and share where you like.`);
+                break;
+            }
+            if (shareLink) window.open(shareLink, '_blank');
+            shareModal.style.display = 'none';
+            console.log(`Share confirmed via ${platform} modal`);
+          };
+        });
+        shareModal.querySelector('.modal-close').onclick = () => {
+          shareModal.style.display = 'none';
+          console.log('Share canceled via modal');
+        };
+      }
+
+      if (clickCount >= 3) {
+        awardTiffy();
+        localStorage.setItem('shareClickCount', '0');
+        console.log('Awarded 1 TIFFY, reset click count');
+      } else {
+        updateMotivation();
+      }
+
+      shareButtons.forEach(btn => btn.disabled = false);
+    }
+
+    function awardTiffy(){
+      const key = 'tetrusScore';
+      let cnt = parseFloat(localStorage.getItem(key) || '0') + 1;
+      cnt = cnt.toFixed(2);
+      localStorage.setItem(key, cnt);
+      E.withdraw.style.display = parseFloat(cnt) > 0 ? "inline-block" : "none";
+      updateDisplay(cnt);
+      E.shareSound.play();
+      console.log(`TIFFY awarded, new balance: ${cnt}`);
+      const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+      E.motivation.textContent = message;
+      setTimeout(updateMotivation, 5000);
+    }
+
+    E.withdraw.onclick = () => {
+      E.withdrawSound.play();
+      setTimeout(() => {
+        window.location.href = 'https://tiffyai.github.io/Offline-/';
+      }, 500);
+    };
+  })();
+  </script>
+</body>
+</html>
