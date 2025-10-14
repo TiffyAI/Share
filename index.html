@@ -64,7 +64,7 @@
       <div style="margin-top:10px">Live price: $<span id="livePrice">–</span></div>
       <a href="https://repo.sourcify.dev/56/0xE488253DD6B4D31431142F1b7601C96f24Fb7dd5" target="_blank" class="sourcify">🧪 Verified on Sourcify</a>
       <button id="withdrawBtn">Withdraw</button>
-      <div id="motivation">Checking your name...</div>
+      <div id="motivation">Welcome! Click Share 3 times to earn 1 TIFFY! Select a post below.</div>
     </div>
 
     <div id="postFeed">
@@ -92,29 +92,20 @@
       withdrawSound: document.getElementById("withdrawSound")
     };
 
-    // Motivational messages array
+    // Motivational messages array (removed {name} since no username verification)
     const motivationalMessages = [
-      "Great job, {name}! You earned 1 TIFFY. Click Share 3 more times to earn another! 🚀",
-      "Awesome, {name}! Another TIFFY earned. Keep clicking to stack those tokens! 🌟",
-      "Way to go, {name}! 1 TIFFY added. Let's make it viral with more clicks! 🔥",
-      "Fantastic, {name}! Your TIFFY count is climbing. Click Share 3 more times! 💪"
+      "Great job! You earned 1 TIFFY. Click Share 3 more times to earn another! 🚀",
+      "Awesome! Another TIFFY earned. Keep clicking to stack those tokens! 🌟",
+      "Way to go! 1 TIFFY added. Let's make it viral with more clicks! 🔥",
+      "Fantastic! Your TIFFY count is climbing. Click Share 3 more times! 💪"
     ];
 
-    // Check user name on load
-    const userName = localStorage.getItem('tiffyUserName');
-    if (!userName || userName.trim() === '') {
-      E.motivation.textContent = "I don't know your name yet! First, add me to your home screen and tell me your name, please.";
-      E.feed.style.display = 'none'; // Hide posts until name is provided
-      setTimeout(() => {
-        window.open('https://tiffyai.github.io/Activating-Portal', '_blank');
-      }, 2000);
-    } else {
-      updateMotivation(userName);
-      setupUI();
-      fetchPrice();
-      setInterval(fetchPrice, 60000);
-      loadPosts();
-    }
+    // Load UI directly, no name verification
+    updateMotivation();
+    setupUI();
+    fetchPrice();
+    setInterval(fetchPrice, 60000);
+    loadPosts();
 
     function setupUI(){
       const key = 'tetrusScore';
@@ -129,12 +120,12 @@
       E.usd.textContent = price ? `Value: $${(parseFloat(cnt) * price).toFixed(2)} USD` : "Value: Fetching...";
     }
 
-    function updateMotivation(userName){
+    function updateMotivation(){
       const clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
       if (clickCount === 0) {
-        E.motivation.textContent = `Welcome, ${userName}! Click Share 3 times to earn 1 TIFFY! Select a post below.`;
+        E.motivation.textContent = "Welcome! Click Share 3 times to earn 1 TIFFY! Select a post below.";
       } else {
-        E.motivation.textContent = `Keep going, ${userName}! Click Share ${3 - clickCount} more time${3 - clickCount === 1 ? '' : 's'} to earn 1 TIFFY!`;
+        E.motivation.textContent = `Keep going! Click Share ${3 - clickCount} more time${3 - clickCount === 1 ? '' : 's'} to earn 1 TIFFY!`;
       }
     }
 
@@ -188,90 +179,51 @@
     }
 
     async function handleShare(post){
-      // Verify name before allowing share
-      const userName = localStorage.getItem('tiffyUserName');
-      if (!userName || userName.trim() === '') {
-        E.motivation.textContent = "I don't know your name yet! First, add me to your home screen and tell me your name, please.";
-        E.feed.style.display = 'none';
-        setTimeout(() => {
-          window.open('https://tiffyai.github.io/Activating-Portal', '_blank');
-        }, 2000);
-        return;
-      }
-
       // Increment click count on button click
       let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
       localStorage.setItem('shareClickCount', clickCount.toString());
-      console.log(`Share button clicked for ${userName}, click count: ${clickCount}`);
+      console.log(`Share button clicked, click count: ${clickCount}`);
 
       // Disable share buttons during share attempt
       const shareButtons = document.querySelectorAll('.share-btn');
       shareButtons.forEach(btn => btn.disabled = true);
 
-      const shareText = post.text; // Use only the post text, no extra link
-      const shareTitle = 'TiffyAI - Join the Revolution';
-      const shareUrl = post.url; // Single link to post URL
+      const shareText = `${post.text} Check it out: ${post.url}`;
+      const shareTitle = 'Share from TiffyAI';
+      const shareUrl = post.url;
 
-      // Attempt to share with image if supported
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [] })) {
+      // Trigger share prompt (but don't gate reward on completion)
+      if (navigator.share) {
         try {
-          const imageUrl = 'https://tiffyai.github.io/Share/TM.jpg'; // Default image
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-          const file = new File([blob], 'TiffyAI.jpg', { type: 'image/jpeg' });
-          await navigator.share({
-            title: shareTitle,
-            text: shareText,
-            url: shareUrl,
-            files: [file]
-          });
-          console.log('Share completed with image via Web Share API');
-        } catch (err) {
-          console.log('Image share failed, falling back to text:', err);
           await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+          console.log('Share completed via Web Share API');
+        } catch (err) {
+          console.log('Share canceled:', err);
         }
       } else {
-        // Fallback with platform choice
-        const platform = prompt(`Choose a platform to share, ${userName}:\n1. Telegram\n2. X\n3. Facebook\n4. Copy to Clipboard\nEnter 1-4 (or cancel to skip):`);
-        let shareLink = '';
-        switch (platform) {
-          case '1':
-            shareLink = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-            break;
-          case '2':
-            shareLink = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-            break;
-          case '3':
-            shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
-            break;
-          case '4':
-            navigator.clipboard.writeText(`${shareText}\n${shareUrl}\nImage: https://tiffyai.github.io/Share/TM.jpg`);
-            alert(`Copied to clipboard, ${userName}! Paste and share where you like.`);
-            break;
-          default:
-            console.log('Share canceled via fallback prompt');
-            return;
-        }
-        if (shareLink) {
-          window.open(shareLink, '_blank');
-          console.log(`Share confirmed via ${platform === '1' ? 'Telegram' : platform === '2' ? 'X' : 'Facebook'} prompt`);
+        const confirmed = confirm(`Share this post to spread the word:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
+        if (confirmed) {
+          window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
+          console.log('Share confirmed via fallback prompt');
+        } else {
+          console.log('Share canceled via fallback prompt');
         }
       }
 
       // Check if 3 clicks reached
       if (clickCount >= 3) {
-        awardTiffy(userName);
+        awardTiffy();
         localStorage.setItem('shareClickCount', '0');
         console.log('Awarded 1 TIFFY, reset click count');
       } else {
-        updateMotivation(userName);
+        updateMotivation();
       }
 
       // Re-enable share buttons
       shareButtons.forEach(btn => btn.disabled = false);
     }
 
-    function awardTiffy(userName){
+    function awardTiffy(){
       const key = 'tetrusScore';
       let cnt = parseFloat(localStorage.getItem(key) || '0') + 1;
       cnt = cnt.toFixed(2);
@@ -279,10 +231,10 @@
       E.withdraw.style.display = parseFloat(cnt) > 0 ? "inline-block" : "none";
       updateDisplay(cnt);
       E.shareSound.play();
-      console.log(`TIFFY awarded to ${userName}, new balance: ${cnt}`);
+      console.log(`TIFFY awarded, new balance: ${cnt}`);
       const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
-      E.motivation.textContent = message.replace('{name}', userName);
-      setTimeout(() => updateMotivation(userName), 5000);
+      E.motivation.textContent = message.replace('{name}', '');
+      setTimeout(updateMotivation, 5000);
     }
 
     E.withdraw.onclick = () => {
