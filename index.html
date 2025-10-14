@@ -68,7 +68,7 @@
     </div>
 
     <div id="postFeed">
-      <h3 style="text-align:center;color:#00ffff;text-shadow:0 0 5px #00ffff;">Posts to Share - Earn 1 TIFFY Each!</h3>
+      <h3 style="text-align:center;color:#00ffff;text-shadow:0 0 5px #00ffff;">Posts to Share - Earn 1 TIFFY After 3 Clicks!</h3>
       <!-- Posts will be loaded here -->
     </div>
   </div>
@@ -94,10 +94,10 @@
 
     // Motivational messages array
     const motivationalMessages = [
-      "Great job, {name}! You earned 1 TIFFY. Keep sharing to grow your balance! 🚀",
-      "Awesome, {name}! Another TIFFY earned. Share more to stack those tokens! 🌟",
-      "Way to go, {name}! 1 TIFFY added. Let's make it viral! 🔥",
-      "Fantastic share, {name}! Your TIFFY count is climbing. Keep it up! 💪"
+      "Great job, {name}! You earned 1 TIFFY. Click Share 3 more times to earn another! 🚀",
+      "Awesome, {name}! Another TIFFY earned. Keep clicking to stack those tokens! 🌟",
+      "Way to go, {name}! 1 TIFFY added. Let's make it viral with more clicks! 🔥",
+      "Fantastic, {name}! Your TIFFY count is climbing. Click Share 3 more times! 💪"
     ];
 
     // Check user name on load
@@ -132,9 +132,9 @@
     function updateMotivation(userName){
       const clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
       if (clickCount === 0) {
-        E.motivation.textContent = `Welcome, ${userName}! Share posts 3 times to earn 1 TIFFY! Select one below.`;
+        E.motivation.textContent = `Welcome, ${userName}! Click Share 3 times to earn 1 TIFFY! Select a post below.`;
       } else {
-        E.motivation.textContent = `Keep going, ${userName}! Share ${3 - clickCount} more time${3 - clickCount === 1 ? '' : 's'} to earn 1 TIFFY!`;
+        E.motivation.textContent = `Keep going, ${userName}! Click Share ${3 - clickCount} more time${3 - clickCount === 1 ? '' : 's'} to earn 1 TIFFY!`;
       }
     }
 
@@ -199,7 +199,12 @@
         return;
       }
 
-      // Disable share buttons to prevent rapid clicks
+      // Increment click count on button click
+      let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
+      localStorage.setItem('shareClickCount', clickCount.toString());
+      console.log(`Share button clicked for ${userName}, click count: ${clickCount}`);
+
+      // Disable share buttons during share attempt
       const shareButtons = document.querySelectorAll('.share-btn');
       shareButtons.forEach(btn => btn.disabled = true);
 
@@ -207,47 +212,31 @@
       const shareTitle = 'Share from TiffyAI';
       const shareUrl = post.url;
 
-      let shareCompleted = false;
-
-      console.log(`Initiating share for ${userName}, click count: ${localStorage.getItem('shareClickCount') || '0'}`);
-
+      // Trigger share prompt (but don't gate reward on completion)
       if (navigator.share) {
         try {
           await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
-          shareCompleted = true;
           console.log('Share completed via Web Share API');
         } catch (err) {
           console.log('Share canceled:', err);
-          localStorage.setItem('shareClickCount', '0');
-          E.motivation.textContent = `Share canceled, ${userName}! Try again to earn 1 TIFFY after 3 shares.`;
-          setTimeout(() => updateMotivation(userName), 3000);
         }
       } else {
-        const confirmed = confirm(`Share this post to earn 1 TIFFY, ${userName}:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
+        const confirmed = confirm(`Share this post to spread the word, ${userName}:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
         if (confirmed) {
           window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-          shareCompleted = true;
           console.log('Share confirmed via fallback prompt');
         } else {
           console.log('Share canceled via fallback prompt');
-          localStorage.setItem('shareClickCount', '0');
-          E.motivation.textContent = `Share canceled, ${userName}! Try again to earn 1 TIFFY after 3 shares.`;
-          setTimeout(() => updateMotivation(userName), 3000);
         }
       }
 
-      if (shareCompleted) {
-        let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
-        localStorage.setItem('shareClickCount', clickCount.toString());
-        console.log(`Share successful, new click count: ${clickCount}`);
-        
-        if (clickCount >= 3) {
-          awardTiffy(userName);
-          localStorage.setItem('shareClickCount', '0');
-          console.log('Awarded 1 TIFFY, reset click count');
-        } else {
-          updateMotivation(userName);
-        }
+      // Check if 3 clicks reached
+      if (clickCount >= 3) {
+        awardTiffy(userName);
+        localStorage.setItem('shareClickCount', '0');
+        console.log('Awarded 1 TIFFY, reset click count');
+      } else {
+        updateMotivation(userName);
       }
 
       // Re-enable share buttons
