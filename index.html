@@ -12,6 +12,7 @@
     .card img{height:32px;vertical-align:middle;margin-right:8px;}
     .btn{margin-top:20px;padding:12px 25px;font-size:16px;border:none;border-radius:8px;cursor:pointer;}
     .share-btn{background:#4af0f8;color:#000;box-shadow:0 0 15px #00ffff;}
+    .share-btn:disabled{background:#666;cursor:not-allowed;}
     #postFeed{margin:20px auto;text-align:left;width:90%;max-width:400px;}
     .post-item{background:rgba(255,255,255,0.1);padding:10px;margin:10px 0;border-radius:8px;cursor:pointer;}
     .post-item:hover{background:rgba(255,255,255,0.2);}
@@ -198,45 +199,59 @@
         return;
       }
 
+      // Disable share buttons to prevent rapid clicks
+      const shareButtons = document.querySelectorAll('.share-btn');
+      shareButtons.forEach(btn => btn.disabled = true);
+
       const shareText = `${post.text} Check it out: ${post.url}`;
       const shareTitle = 'Share from TiffyAI';
       const shareUrl = post.url;
 
       let shareCompleted = false;
 
+      console.log(`Initiating share for ${userName}, click count: ${localStorage.getItem('shareClickCount') || '0'}`);
+
       if (navigator.share) {
         try {
           await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
           shareCompleted = true;
+          console.log('Share completed via Web Share API');
         } catch (err) {
           console.log('Share canceled:', err);
-          // Reset click count on cancel/back
           localStorage.setItem('shareClickCount', '0');
-          updateMotivation(userName);
+          E.motivation.textContent = `Share canceled, ${userName}! Try again to earn 1 TIFFY after 3 shares.`;
+          setTimeout(() => updateMotivation(userName), 3000);
         }
       } else {
         const confirmed = confirm(`Share this post to earn 1 TIFFY, ${userName}:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
         if (confirmed) {
           window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
           shareCompleted = true;
+          console.log('Share confirmed via fallback prompt');
         } else {
-          // Reset click count on cancel
+          console.log('Share canceled via fallback prompt');
           localStorage.setItem('shareClickCount', '0');
-          updateMotivation(userName);
+          E.motivation.textContent = `Share canceled, ${userName}! Try again to earn 1 TIFFY after 3 shares.`;
+          setTimeout(() => updateMotivation(userName), 3000);
         }
       }
 
       if (shareCompleted) {
         let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
         localStorage.setItem('shareClickCount', clickCount.toString());
+        console.log(`Share successful, new click count: ${clickCount}`);
         
         if (clickCount >= 3) {
           awardTiffy(userName);
-          localStorage.setItem('shareClickCount', '0'); // Reset after award
+          localStorage.setItem('shareClickCount', '0');
+          console.log('Awarded 1 TIFFY, reset click count');
         } else {
           updateMotivation(userName);
         }
       }
+
+      // Re-enable share buttons
+      shareButtons.forEach(btn => btn.disabled = false);
     }
 
     function awardTiffy(userName){
@@ -247,12 +262,10 @@
       E.withdraw.style.display = parseFloat(cnt) > 0 ? "inline-block" : "none";
       updateDisplay(cnt);
       E.shareSound.play();
-      // Pick a random motivational message
+      console.log(`TIFFY awarded to ${userName}, new balance: ${cnt}`);
       const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
       E.motivation.textContent = message.replace('{name}', userName);
-      setTimeout(() => {
-        updateMotivation(userName);
-      }, 5000);
+      setTimeout(() => updateMotivation(userName), 5000);
     }
 
     E.withdraw.onclick = () => {
