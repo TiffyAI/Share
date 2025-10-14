@@ -99,9 +99,6 @@
       "Fantastic share, {name}! Your TIFFY count is climbing. Keep it up! 💪"
     ];
 
-    let pendingShare = null; // Track pending share { userName, timer }
-    let cancelDetected = false; // Flag for cancel/back within 1 minute
-
     // Check user name on load
     const userName = localStorage.getItem('tiffyUserName');
     if (!userName || userName.trim() === '') {
@@ -111,7 +108,7 @@
         window.open('https://tiffyai.github.io/Activating-Portal', '_blank');
       }, 2000);
     } else {
-      E.motivation.textContent = `Welcome, ${userName}! Share posts to earn TIFFY! Select one below and share.`;
+      updateMotivation(userName);
       setupUI();
       fetchPrice();
       setInterval(fetchPrice, 60000);
@@ -129,6 +126,15 @@
       E.count.textContent = `${cnt} TIFFY`;
       const price = parseFloat(E.live.textContent || 0);
       E.usd.textContent = price ? `Value: $${(parseFloat(cnt) * price).toFixed(2)} USD` : "Value: Fetching...";
+    }
+
+    function updateMotivation(userName){
+      const clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
+      if (clickCount === 0) {
+        E.motivation.textContent = `Welcome, ${userName}! Share posts 3 times to earn 1 TIFFY! Select one below.`;
+      } else {
+        E.motivation.textContent = `Keep going, ${userName}! Share ${3 - clickCount} more time${3 - clickCount === 1 ? '' : 's'} to earn 1 TIFFY!`;
+      }
     }
 
     async function fetchPrice(){
@@ -192,12 +198,6 @@
         return;
       }
 
-      // If another share is pending, warn user
-      if (pendingShare) {
-        E.motivation.textContent = `Please wait, ${userName}! A share is still pending.`;
-        return;
-      }
-
       const shareText = `${post.text} Check it out: ${post.url}`;
       const shareTitle = 'Share from TiffyAI';
       const shareUrl = post.url;
@@ -210,7 +210,9 @@
           shareCompleted = true;
         } catch (err) {
           console.log('Share canceled:', err);
-          cancelDetected = true; // Mark cancel/back
+          // Reset click count on cancel/back
+          localStorage.setItem('shareClickCount', '0');
+          updateMotivation(userName);
         }
       } else {
         const confirmed = confirm(`Share this post to earn 1 TIFFY, ${userName}:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
@@ -218,25 +220,22 @@
           window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
           shareCompleted = true;
         } else {
-          cancelDetected = true; // Mark cancel
+          // Reset click count on cancel
+          localStorage.setItem('shareClickCount', '0');
+          updateMotivation(userName);
         }
       }
 
       if (shareCompleted) {
-        // Start 1-minute timer for pending share
-        pendingShare = { userName };
-        E.motivation.textContent = `Share pending, please wait 1 minute to earn 1 TIFFY, ${userName}!`;
-        cancelDetected = false; // Reset cancel flag
-
-        setTimeout(() => {
-          if (!cancelDetected && pendingShare) {
-            awardTiffy(pendingShare.userName);
-            pendingShare = null; // Clear pending share
-          } else {
-            E.motivation.textContent = `Welcome, ${userName}! Share posts to earn TIFFY! Select one below and share.`;
-            pendingShare = null; // Clear pending share
-          }
-        }, 60000); // 1 minute
+        let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
+        localStorage.setItem('shareClickCount', clickCount.toString());
+        
+        if (clickCount >= 3) {
+          awardTiffy(userName);
+          localStorage.setItem('shareClickCount', '0'); // Reset after award
+        } else {
+          updateMotivation(userName);
+        }
       }
     }
 
@@ -252,7 +251,7 @@
       const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
       E.motivation.textContent = message.replace('{name}', userName);
       setTimeout(() => {
-        E.motivation.textContent = `Welcome, ${userName}! Share posts to earn TIFFY! Select one below and share.`;
+        updateMotivation(userName);
       }, 5000);
     }
 
