@@ -285,13 +285,13 @@
       } else {
         // Detect installed browser and suggest Chrome Intent or redirect
         const userAgent = navigator.userAgent.toLowerCase();
-        let intentUrl = 'https://tiffyai.github.io/Social-Browsers'; // Your loading page
+        let intentUrl = 'https://tiffyai.github.io/Blockchain-Storm-AR-VR-'; // Your loading page
         if (userAgent.includes('chrome')) intentUrl += '?browser=chrome';
         else if (userAgent.includes('safari')) intentUrl += '?browser=safari';
         else if (userAgent.includes('firefox')) intentUrl += '?browser=firefox';
         else intentUrl += '?browser=chrome'; // Default to Chrome
 
-        modalText.innerHTML = `Share this post to spread the word:<br><br>${shareText}<br><br>URL: <a href="${shareUrl}" target="_blank">${shareUrl}</a><br>Include image: <a href="https://tiffyai.github.io/Share/TM.jpg" target="_blank">TM.jpg</a><br><br><a href="${intentUrl}" target="_blank" class="modal-option">Open in Preferred Browser</a>`;
+        modalText.innerHTML = `Share this post to spread the word:<br><br>${shareText}<br><br>URL: <a href="${shareUrl}" target="_blank">${shareUrl}</a><br>Include image: <a href="https://tiffyai.github.io/Share/TM.jpg" target="_blank">TM.jpg</a><br><br><a href="${intentUrl}" target="_blank" class="modal-option">Play the Blockchain Storm Challenge</a>`;
         shareModal.style.display = 'flex';
         const options = shareModal.querySelectorAll('.modal-option');
         options.forEach(option => {
