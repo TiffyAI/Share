@@ -92,7 +92,7 @@
       withdrawSound: document.getElementById("withdrawSound")
     };
 
-    // Motivational messages array (removed {name} since no username verification)
+    // Motivational messages array (no username needed)
     const motivationalMessages = [
       "Great job! You earned 1 TIFFY. Click Share 3 more times to earn another! 🚀",
       "Awesome! Another TIFFY earned. Keep clicking to stack those tokens! 🌟",
@@ -100,7 +100,12 @@
       "Fantastic! Your TIFFY count is climbing. Click Share 3 more times! 💪"
     ];
 
-    // Load UI directly, no name verification
+    // Initialize and clamp click count on load
+    let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
+    if (clickCount < 0) {
+      clickCount = 0;
+      localStorage.setItem('shareClickCount', '0');
+    }
     updateMotivation();
     setupUI();
     fetchPrice();
@@ -121,11 +126,13 @@
     }
 
     function updateMotivation(){
-      const clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
+      let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0');
+      if (clickCount < 0) clickCount = 0; // Ensure no negative counts
       if (clickCount === 0) {
         E.motivation.textContent = "Welcome! Click Share 3 times to earn 1 TIFFY! Select a post below.";
       } else {
-        E.motivation.textContent = `Keep going! Click Share ${3 - clickCount} more time${3 - clickCount === 1 ? '' : 's'} to earn 1 TIFFY!`;
+        const remaining = 3 - clickCount;
+        E.motivation.textContent = `Keep going! Click Share ${remaining > 0 ? remaining : 0} more time${remaining === 1 ? '' : 's'} to earn 1 TIFFY!`;
       }
     }
 
@@ -143,7 +150,6 @@
     }
 
     function loadPosts(){
-      // Hardcoded posts with picture/mp4, wording, and link
       const samplePosts = [
         {
           id: 1,
@@ -179,8 +185,9 @@
     }
 
     async function handleShare(post){
-      // Increment click count on button click
+      // Increment and clamp click count
       let clickCount = parseInt(localStorage.getItem('shareClickCount') || '0') + 1;
+      if (clickCount < 0) clickCount = 0;
       localStorage.setItem('shareClickCount', clickCount.toString());
       console.log(`Share button clicked, click count: ${clickCount}`);
 
@@ -188,25 +195,53 @@
       const shareButtons = document.querySelectorAll('.share-btn');
       shareButtons.forEach(btn => btn.disabled = true);
 
-      const shareText = `${post.text} Check it out: ${post.url}`;
-      const shareTitle = 'Share from TiffyAI';
-      const shareUrl = post.url;
+      const shareText = post.text; // Use only the post text, no extra link
+      const shareTitle = 'TiffyAI - Join the Revolution';
+      const shareUrl = post.url; // Single link to post URL
 
-      // Trigger share prompt (but don't gate reward on completion)
-      if (navigator.share) {
+      // Attempt to share with image if supported
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [] })) {
         try {
-          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
-          console.log('Share completed via Web Share API');
+          const imageUrl = 'https://tiffyai.github.io/Share/TM.jpg'; // Default image
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'TiffyAI.jpg', { type: 'image/jpeg' });
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+            files: [file]
+          });
+          console.log('Share completed with image via Web Share API');
         } catch (err) {
-          console.log('Share canceled:', err);
+          console.log('Image share failed, falling back to text:', err);
+          await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
         }
       } else {
-        const confirmed = confirm(`Share this post to spread the word:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
-        if (confirmed) {
-          window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-          console.log('Share confirmed via fallback prompt');
-        } else {
-          console.log('Share canceled via fallback prompt');
+        // Fallback with platform choice
+        const platform = prompt(`Choose a platform to share:\n1. Telegram\n2. X\n3. Facebook\n4. Copy to Clipboard\nEnter 1-4 (or cancel to skip):`);
+        let shareLink = '';
+        switch (platform) {
+          case '1':
+            shareLink = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+            break;
+          case '2':
+            shareLink = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+            break;
+          case '3':
+            shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+            break;
+          case '4':
+            navigator.clipboard.writeText(`${shareText}\n${shareUrl}\nImage: https://tiffyai.github.io/Share/TM.jpg`);
+            alert(`Copied to clipboard! Paste and share where you like.`);
+            break;
+          default:
+            console.log('Share canceled via fallback prompt');
+            return;
+        }
+        if (shareLink) {
+          window.open(shareLink, '_blank');
+          console.log(`Share confirmed via ${platform === '1' ? 'Telegram' : platform === '2' ? 'X' : 'Facebook'} prompt`);
         }
       }
 
@@ -233,7 +268,7 @@
       E.shareSound.play();
       console.log(`TIFFY awarded, new balance: ${cnt}`);
       const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
-      E.motivation.textContent = message.replace('{name}', '');
+      E.motivation.textContent = message;
       setTimeout(updateMotivation, 5000);
     }
 
