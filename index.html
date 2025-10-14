@@ -99,6 +99,9 @@
       "Fantastic share, {name}! Your TIFFY count is climbing. Keep it up! 💪"
     ];
 
+    let pendingShare = null; // Track pending share { userName, timer }
+    let cancelDetected = false; // Flag for cancel/back within 1 minute
+
     // Check user name on load
     const userName = localStorage.getItem('tiffyUserName');
     if (!userName || userName.trim() === '') {
@@ -106,7 +109,7 @@
       E.feed.style.display = 'none'; // Hide posts until name is provided
       setTimeout(() => {
         window.open('https://tiffyai.github.io/Activating-Portal', '_blank');
-      }, 2000); // Delay to show message
+      }, 2000);
     } else {
       E.motivation.textContent = `Welcome, ${userName}! Share posts to earn TIFFY! Select one below and share.`;
       setupUI();
@@ -189,25 +192,51 @@
         return;
       }
 
+      // If another share is pending, warn user
+      if (pendingShare) {
+        E.motivation.textContent = `Please wait, ${userName}! A share is still pending.`;
+        return;
+      }
+
       const shareText = `${post.text} Check it out: ${post.url}`;
       const shareTitle = 'Share from TiffyAI';
       const shareUrl = post.url;
 
+      let shareCompleted = false;
+
       if (navigator.share) {
         try {
           await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
-          awardTiffy(userName); // Only award if share completes
+          shareCompleted = true;
         } catch (err) {
           console.log('Share canceled:', err);
-          // Do nothing, score stays unchanged
+          cancelDetected = true; // Mark cancel/back
         }
       } else {
         const confirmed = confirm(`Share this post to earn 1 TIFFY, ${userName}:\n\n${shareText}\n\nCopy and share on Telegram, Facebook, or X, then click OK. Cancel if you don't share.`);
         if (confirmed) {
           window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-          awardTiffy(userName); // Only award if user confirms
+          shareCompleted = true;
+        } else {
+          cancelDetected = true; // Mark cancel
         }
-        // If canceled, do nothing, score stays unchanged
+      }
+
+      if (shareCompleted) {
+        // Start 1-minute timer for pending share
+        pendingShare = { userName };
+        E.motivation.textContent = `Share pending, please wait 1 minute to earn 1 TIFFY, ${userName}!`;
+        cancelDetected = false; // Reset cancel flag
+
+        setTimeout(() => {
+          if (!cancelDetected && pendingShare) {
+            awardTiffy(pendingShare.userName);
+            pendingShare = null; // Clear pending share
+          } else {
+            E.motivation.textContent = `Welcome, ${userName}! Share posts to earn TIFFY! Select one below and share.`;
+            pendingShare = null; // Clear pending share
+          }
+        }, 60000); // 1 minute
       }
     }
 
